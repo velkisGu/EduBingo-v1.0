@@ -1,10 +1,10 @@
-
+<!-- EduBingo HTML - Lab Vocab Edition -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EduBingo - Lab Tests</title>
+  <title>BINGO</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -16,6 +16,8 @@
     h1 {
       margin-bottom: 10px;
       color: #0d6efd;
+      font-size: 48px;
+      letter-spacing: 5px;
     }
     table {
       margin: 20px auto;
@@ -79,20 +81,36 @@
     button:hover {
       background: #0a58ca;
     }
+    .bingo-header {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 5px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #0d6efd;
+    }
+    .bingo-header span {
+      width: 120px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <audio id="backgroundMusic" src="https://cdn.pixabay.com/audio/2022/03/15/audio_d9fbb4d408.mp3" autoplay loop></audio>
   <audio id="winSound" src="https://cdn.pixabay.com/audio/2022/03/23/audio_499cdad21b.mp3"></audio>
-  <h1>EduBingo - Lab Tests</h1>
+  <h1>BINGO</h1>
+  <div class="bingo-header">
+    <span>B</span><span>I</span><span>N</span><span>G</span><span>O</span>
+  </div>
   <table id="bingoBoard"></table>
   <div class="definition-box">
     <p class="definition" id="definition">Click below to start the game!</p>
     <div id="errorCount">Errors: 0</div>
     <div id="bingoWin"></div>
-    <button onclick="showNextDefinition()">Next Definition</button>
+    <button id="nextBtn" onclick="showNextDefinition()">Start Game</button>
     <button onclick="resetGame()">Restart Game</button>
   </div>
+
   <script>
     const vocab = {
       "Urinalysis": "Detects UTIs, kidney problems, glucose.",
@@ -113,7 +131,7 @@
       "Reliable": "Consistently accurate.",
       "Procedure": "A step-by-step process.",
       "Complete Blood Count (CBC)": "Evaluates red cells, white cells, and platelets.",
-      "Blood Glucose Test": "Blood Glucose Test.",
+      "Blood Glucose Test": "measures blood sugar levels.",
       "Rapid Antigen Test": "Quick test for detecting viral proteins (e.g., COVID-19).",
       "COVID-19 PCR Test": "Detects viral RNA of SARSCoV-2.",
       "Technician": "Professional who performs analysis, testing, and technical tasks in a laboratory.",
@@ -121,7 +139,7 @@
       "Prepare": "This is done by the technician to get ready before starting the test."
     };
 
-    let words, definitions, currentAnswer, index, errorCount;
+    let words, definitions, currentAnswer, index, errorCount, gameOver, gameStarted;
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -148,15 +166,17 @@
           cell.dataset.col = c;
           if (word !== "FREE") {
             cell.addEventListener("click", () => {
-              if (!currentAnswer || cell.classList.contains("marked")) return;
+              if (!currentAnswer || cell.classList.contains("marked") || gameOver) return;
               if (cell.dataset.word === currentAnswer) {
                 cell.classList.add("marked");
                 checkBingo();
+                showNextDefinition();
               } else {
                 cell.classList.add("incorrect");
                 errorCount++;
                 document.getElementById("errorCount").textContent = `Errors: ${errorCount}`;
                 setTimeout(() => cell.classList.remove("incorrect"), 1000);
+                showNextDefinition();
               }
             });
           } else {
@@ -167,6 +187,11 @@
     }
 
     function showNextDefinition() {
+      const nextBtn = document.getElementById("nextBtn");
+      if (!gameStarted) {
+        nextBtn.textContent = "Next Definition";
+        gameStarted = true;
+      }
       if (index < definitions.length) {
         const [word, definition] = definitions[index];
         currentAnswer = word;
@@ -209,6 +234,7 @@
     }
 
     function winGame() {
+      gameOver = true;
       document.getElementById("bingoWin").textContent = "¡BINGO WIN! 🎉";
       document.getElementById("winSound").play();
     }
@@ -219,9 +245,12 @@
       currentAnswer = null;
       index = 0;
       errorCount = 0;
+      gameOver = false;
+      gameStarted = false;
       document.getElementById("definition").textContent = "Click below to start the game!";
       document.getElementById("errorCount").textContent = "Errors: 0";
       document.getElementById("bingoWin").textContent = "";
+      document.getElementById("nextBtn").textContent = "Start Game";
       buildBoard();
     }
 
