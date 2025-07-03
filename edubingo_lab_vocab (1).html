@@ -1,0 +1,268 @@
+<!-- EduBingo HTML - Lab Vocab Edition -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BINGO</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      color: #333;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+      color: #0d6efd;
+      font-size: 48px;
+      letter-spacing: 5px;
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+    td {
+      width: 120px;
+      height: 100px;
+      border: 2px solid #0d6efd;
+      vertical-align: middle;
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      background: white;
+      transition: 0.2s;
+      padding: 5px;
+    }
+    td.marked {
+      background: #0d6efd;
+      color: white;
+    }
+    td.incorrect {
+      background: #dc3545;
+      color: white;
+    }
+    .definition-box {
+      margin-top: 30px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .definition {
+      font-style: italic;
+      font-size: 18px;
+      color: #555;
+    }
+    #errorCount {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #dc3545;
+      font-weight: bold;
+    }
+    #bingoWin {
+      margin-top: 15px;
+      font-size: 24px;
+      color: green;
+      font-weight: bold;
+    }
+    button {
+      margin-top: 20px;
+      margin-right: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #0d6efd;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0a58ca;
+    }
+    .bingo-header {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 5px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #0d6efd;
+    }
+    .bingo-header span {
+      width: 120px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <audio id="backgroundMusic" src="https://cdn.pixabay.com/audio/2022/03/15/audio_d9fbb4d408.mp3" autoplay loop></audio>
+  <audio id="winSound" src="https://cdn.pixabay.com/audio/2022/03/23/audio_499cdad21b.mp3"></audio>
+  <h1>BINGO</h1>
+  <div class="bingo-header">
+    <span>B</span><span>I</span><span>N</span><span>G</span><span>O</span>
+  </div>
+  <table id="bingoBoard"></table>
+  <div class="definition-box">
+    <p class="definition" id="definition">Click below to start the game!</p>
+    <div id="errorCount">Errors: 0</div>
+    <div id="bingoWin"></div>
+    <button id="nextBtn" onclick="showNextDefinition()">Start Game</button>
+    <button onclick="resetGame()">Restart Game</button>
+  </div>
+
+  <script>
+    const vocab = {
+      "Urinalysis": "Detects UTIs, kidney problems, glucose.",
+      "Lipid Profile": "Measures cholesterol and triglyceride levels.",
+      "Liver Function Test (LFT)": "Assesses liver enzymes and liver health.",
+      "Kidney Function Test": "Measures urea, creatinine to assess kidney performance.",
+      "Thyroid Function Test (TFT)": "Evaluates thyroid hormone levels (TSH, T3, T4).",
+      "Electrolyte Panel": "Checks sodium, potassium, chloride levels.",
+      "Hemoglobin A1C": "Shows average blood sugar over 2–3 months.",
+      "Stool Culture": "Detects bacteria, parasites, or blood in feces.",
+      "Sputum Culture": "Identifies bacteria in lung secretions.",
+      "Coagulation Panel (PT/INR)": "Tests blood clotting time (important before surgery).",
+      "Pregnancy Test (hCG)": "Detects presence of human chorionic gonadotropin.",
+      "Culture and Sensitivity": "Identify bacteria and best antibiotic treatment.",
+      "Identification": "Personal information to confirm identity.",
+      "Sample": "A portion used for testing.",
+      "Contamination": "The presence of unwanted substances.",
+      "Reliable": "Consistently accurate.",
+      "Procedure": "A step-by-step process.",
+      "Complete Blood Count (CBC)": "Evaluates red cells, white cells, and platelets.",
+      "Blood Glucose Test": "measures blood sugar levels.",
+      "Rapid Antigen Test": "Quick test for detecting viral proteins (e.g., COVID-19).",
+      "COVID-19 PCR Test": "Detects viral RNA of SARSCoV-2.",
+      "Technician": "Professional who performs analysis, testing, and technical tasks in a laboratory.",
+      "Label": "This is required to confirm that the technician is working with the correct person.",
+      "Prepare": "This is done by the technician to get ready before starting the test."
+    };
+
+    let words, definitions, currentAnswer, index, errorCount, gameOver, gameStarted, wrongDefs = [];
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function buildBoard() {
+      const shuffled = shuffle([...words]);
+      shuffled.splice(12, 0, "FREE");
+      let i = 0;
+      const table = document.getElementById("bingoBoard");
+      table.innerHTML = "";
+      for (let r = 0; r < 5; r++) {
+        const row = table.insertRow();
+        for (let c = 0; c < 5; c++) {
+          const cell = row.insertCell();
+          const word = shuffled[i++];
+          cell.textContent = word;
+          cell.dataset.word = word;
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          if (word !== "FREE") {
+            cell.addEventListener("click", () => {
+              if (!currentAnswer || cell.classList.contains("marked") || gameOver) return;
+              if (cell.dataset.word === currentAnswer) {
+                cell.classList.add("marked");
+                checkBingo();
+                showNextDefinition();
+              } else {
+                cell.classList.add("incorrect");
+                errorCount++;
+                wrongDefs.push([currentAnswer, vocab[currentAnswer]]);
+                document.getElementById("errorCount").textContent = `Errors: ${errorCount}`;
+                setTimeout(() => cell.classList.remove("incorrect"), 1000);
+                showNextDefinition();
+              }
+            });
+          } else {
+            cell.classList.add("marked");
+          }
+        }
+      }
+    }
+
+    function showNextDefinition() {
+      const nextBtn = document.getElementById("nextBtn");
+      if (!gameStarted) {
+        nextBtn.textContent = "Next Definition";
+        gameStarted = true;
+      }
+
+      if (wrongDefs.length > 0) {
+        const [word, definition] = wrongDefs.shift();
+        definitions.push([word, definition]); // Requeue failed definition to end
+      }
+
+      if (index < definitions.length) {
+        const [word, definition] = definitions[index];
+        currentAnswer = word;
+        document.getElementById("definition").textContent = definition;
+        index++;
+      } else {
+        currentAnswer = null;
+        document.getElementById("definition").textContent = "Game over! You've read all definitions.";
+      }
+    }
+
+    function checkBingo() {
+      const table = document.getElementById("bingoBoard");
+
+      for (let i = 0; i < 5; i++) {
+        let rowWin = true;
+        let colWin = true;
+        for (let j = 0; j < 5; j++) {
+          if (!table.rows[i].cells[j].classList.contains("marked")) rowWin = false;
+          if (!table.rows[j].cells[i].classList.contains("marked")) colWin = false;
+        }
+        if (rowWin || colWin) return winGame();
+      }
+
+      let diag1 = true;
+      let diag2 = true;
+      for (let i = 0; i < 5; i++) {
+        if (!table.rows[i].cells[i].classList.contains("marked")) diag1 = false;
+        if (!table.rows[i].cells[4 - i].classList.contains("marked")) diag2 = false;
+      }
+      if (diag1 || diag2) return winGame();
+
+      const corners = [
+        table.rows[0].cells[0],
+        table.rows[0].cells[4],
+        table.rows[4].cells[0],
+        table.rows[4].cells[4]
+      ];
+      if (corners.every(cell => cell.classList.contains("marked"))) return winGame();
+    }
+
+    function winGame() {
+      gameOver = true;
+      document.getElementById("bingoWin").textContent = "¡BINGO WIN! 🎉";
+      document.getElementById("winSound").play();
+    }
+
+    function resetGame() {
+      words = Object.keys(vocab);
+      definitions = Object.entries(vocab).sort(() => Math.random() - 0.5);
+      currentAnswer = null;
+      index = 0;
+      errorCount = 0;
+      gameOver = false;
+      gameStarted = false;
+      wrongDefs = [];
+      document.getElementById("definition").textContent = "Click below to start the game!";
+      document.getElementById("errorCount").textContent = "Errors: 0";
+      document.getElementById("bingoWin").textContent = "";
+      document.getElementById("nextBtn").textContent = "Start Game";
+      buildBoard();
+    }
+
+    resetGame();
+  </script>
+</body>
+</html>
